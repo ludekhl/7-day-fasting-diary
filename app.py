@@ -144,27 +144,63 @@ def compute_day_number(d: date) -> int:
 
 
 # -------------------- Routes --------------------
+from datetime import timedelta
+
 @app.route("/")
 def dashboard():
-    entries = Entry.query.order_by(Entry.when.asc()).all()
-    labels = [e.when.strftime("%a %d %b") for e in entries]
-    weights = [e.weight for e in entries]
-    waters  = [e.water_ml for e in entries]          # <-- add
-    energies = [e.energy for e in entries]           # <-- optional
-
     start = fast_start_date()
-    today_num = compute_day_number(date.today())
-    done_days = sum(1 for e in entries if 1 <= compute_day_number(e.when) <= 7)
-    progress = min(100, max(0, int(done_days / 7 * 100)))
+    window_end = start + timedelta(days=6)
+
+    # pull only entries in the 7-day window, oldest→newest
+    entries = (
+        Entry.query
+        .filter(Entry.when.between(start, window_end))
+        .order_by(Entry.when.asc(), Entry.created_at.asc())
+        .all()
+    )
+
+    # bucket by day
+    by_day = {}
+    for e in entries:
+        d = e.when
+        by_day.setdefault(d, {"entries": []})
+        by_day[d]["entries"].append(e)
+
+    # build 7 daily points
+    labels, weights, waters, energies = [], [], [], []
+    progress_days = 0
+    for i in range(7):
+        day = start + timedelta(days=i)
+        labels.append(day.strftime("%a %d %b"))
+        bucket = by_day.get(day, {"entries": []})["entries"]
+
+        if bucket:
+            progress_days += 1
+            # latest entry of the day for weight/energy; sum water
+            latest = bucket[-1]
+            day_weight = next((e.weight for e in reversed(bucket) if e.weight is not None), None)
+            day_energy = next((e.energy for e in reversed(bucket) if e.energy is not None), None)
+            day_water  = sum((e.water_ml or 0) for e in bucket)
+        else:
+            day_weight = None
+            day_energy = None
+            day_water  = None  # null → gap in Chart.js
+
+        weights.append(day_weight)
+        energies.append(day_energy)
+        waters.append(day_water)
+
+    progress = int(progress_days / 7 * 100)
+
     return render_template(
         "dashboard.html",
-        entries=entries,
+        entries=entries,     # still used for the Recent list
         labels=labels,
         weights=weights,
-        waters=waters,       # <-- add
-        energies=energies,   # <-- add (optional)
+        waters=waters,
+        energies=energies,
         start=start,
-        today_num=today_num,
+        today_num=compute_day_number(date.today()),
         progress=progress,
     )
 

@@ -54,10 +54,10 @@
 </div>
 
 <script>
-  const labels  = {{ labels|tojson }};
-  const weights = {{ weights|tojson }};
-  const waters  = {{ waters|tojson }};
-  const energies = {{ energies|tojson }};
+  const labels   = {{ labels|tojson }};
+  const weights  = {{ weights|tojson }};  // daily
+  const waters   = {{ waters|tojson }};   // daily (sum)
+  const energies = {{ energies|tojson }}; // daily (latest)
 
   const ctx = document.getElementById('weightChart');
   if (ctx && labels && labels.length) {
@@ -66,37 +66,18 @@
       data: {
         labels,
         datasets: [
-          {
-            label: 'Weight (kg)',
-            data: weights,
-            tension: 0.3,
-            spanGaps: true,
-            yAxisID: 'yWeight'
-          },
-          {
-            label: 'Water (ml)',
-            data: waters,
-            tension: 0.3,
-            spanGaps: true,
-            yAxisID: 'yWater'
-          },
-          // Optional: show energy on same chart
-          // {
-          //   label: 'Energy (1–5)',
-          //   data: energies,
-          //   tension: 0.3,
-          //   spanGaps: true,
-          //   yAxisID: 'yEnergy'
-          // }
+          { label: 'Weight (kg)', data: weights,  tension: 0.3, spanGaps: true, yAxisID: 'yWeight' },
+          { label: 'Water (ml)',  data: waters,   tension: 0.3, spanGaps: true, yAxisID: 'yWater'  },
+          // { label: 'Energy (1–5)', data: energies, tension: 0.3, spanGaps: true, yAxisID: 'yEnergy' },
         ]
       },
       options: {
         responsive: true,
         plugins: { legend: { display: true } },
         scales: {
-          yWeight: { type: 'linear', position: 'left', title: { display: true, text: 'kg' } },
+          yWeight: { type: 'linear', position: 'left',  title: { display: true, text: 'kg' } },
           yWater:  { type: 'linear', position: 'right', title: { display: true, text: 'ml' }, beginAtZero: true, grid: { drawOnChartArea: false } },
-          // yEnergy: { type: 'linear', position: 'right', min: 0, max: 5, grid: { drawOnChartArea: false } }
+          // yEnergy: { type: 'linear', position: 'right', min: 0, max: 5, grid: { drawOnChartArea: false } },
         }
       }
     });
