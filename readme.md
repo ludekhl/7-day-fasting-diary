@@ -29,3 +29,18 @@ You can track **weight**, **energy**, **mood**, **water intake**, **feelings**, 
 ---
 
 ## 📂 Project Structure
+
+```text
+7-day-fasting-diary/
+├── app.py                # Main Flask application
+├── requirements.txt      # Python dependencies
+├── fasting_diary.db      # SQLite database (auto-created on first run)
+├── static/
+│   ├── styles.css        # Custom CSS (auto-created if missing)
+│   └── uploads/          # Uploaded photos
+└── templates/            # Jinja2 HTML templates
+    ├── _base.html        # Layout wrapper (nav, footer, styles)
+    ├── dashboard.html    # Main dashboard view
+    ├── entries.html      # All entries list
+    ├── entry_form.html   # Add/edit entry form
+    └── entry_view.html   # Single entry view
