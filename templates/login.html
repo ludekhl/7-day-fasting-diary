@@ -1,0 +1,20 @@
+{% extends '_base.html' %}
+{% block content %}
+  <div class="max-w-md mx-auto card">
+    <h1 class="text-2xl font-bold mb-4">Login</h1>
+    <form method="post" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">Username</label>
+        <input name="username" class="w-full border rounded-xl px-3 py-2" autocomplete="username" required />
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">Password</label>
+        <input type="password" name="password" class="w-full border rounded-xl px-3 py-2" autocomplete="current-password" required />
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" type="submit">Log in</button>
+        <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends '_base.html' %}
+{% block content %}
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold">{{ entry.when.strftime('%Y-%m-%d') }}</h1>
+      <div class="text-sm text-gray-600">
+        Day {{ entry.day_number or '-' }}
+        {% if entry.weight %} • {{ entry.weight }} kg{% endif %}
+        {% if entry.energy %} • Energy {{ entry.energy }}/5{% endif %}
+        {% if entry.water_ml %} • {{ entry.water_ml }} ml water{% endif %}
+        {% if entry.mood %} • {{ entry.mood }}{% endif %}
+      </div>
+    </div>
+
+    {% if logged_in %}
+      <div class="flex gap-2">
+        <a class="btn btn-secondary" href="{{ url_for('entry_form', entry_id=entry.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('delete_entry', entry_id=entry.id) }}" onsubmit="return confirm('Delete entry? This also deletes photos.')">
+          <button class="btn btn-secondary" type="submit">Delete</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if entry.feelings %}
+    <div class="card mb-4">
+      <h2 class="font-semibold mb-2">Feelings / notes</h2>
+      <p class="whitespace-pre-line leading-relaxed">{{ entry.feelings }}</p>
+    </div>
+  {% endif %}
+
+  <div class="grid md:grid-cols-3 gap-3">
+    {% for p in entry.photos %}
+      <a href="{{ url_for('uploaded_file', filename=p.filename) }}" target="_blank" class="block">
+        <img src="{{ url_for('uploaded_file', filename=p.filename) }}" class="w-full aspect-square object-cover rounded-2xl border" />
+      </a>
+    {% else %}
+      <div class="text-sm text-gray-500">No photos for this entry.</div>
+    {% endfor %}
+  </div>
+{% endblock %}

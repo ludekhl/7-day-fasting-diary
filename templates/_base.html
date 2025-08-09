@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>7-Day Fasting Diary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    .card { @apply bg-white rounded-2xl shadow p-6; }
+    .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold transition active:scale-95; }
+    .btn-primary { @apply bg-black text-white hover:bg-gray-800; }
+    .btn-secondary { @apply bg-gray-100 hover:bg-gray-200; }
+    .pill { @apply text-xs px-2 py-1 rounded-full bg-gray-100; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="sticky top-0 z-10 glass border-b">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="{{ url_for('dashboard') }}" class="font-bold text-lg">7-Day Fasting Diary</a>
+        <nav class="flex items-center gap-2">
+          {% if logged_in %}
+            <a class="btn btn-secondary" href="{{ url_for('entry_form') }}">New entry</a>
+            <a class="btn btn-secondary" href="{{ url_for('list_entries') }}">All entries</a>
+            <a class="btn btn-secondary" href="{{ url_for('logout') }}">Logout</a>
+          {% else %}
+            <a class="btn btn-secondary" href="{{ url_for('list_entries') }}">All entries</a>
+            <a class="btn btn-primary" href="{{ url_for('login', next=request.path) }}">Login</a>
+          {% endif %}
+        </nav>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-10">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, msg in messages %}
+            <div class="card border {{ 'border-red-200' if category=='error' else 'border-emerald-200' }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="py-10 text-center text-sm text-gray-500">
+    <span class="brand">Built for a focused 7-day reset. Stay hydrated. 🥤</span>
+  </footer>
+</body>
+</html>

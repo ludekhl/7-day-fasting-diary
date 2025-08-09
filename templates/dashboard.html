@@ -1,0 +1,124 @@
+{% extends '_base.html' %}
+{% block content %}
+<div class="grid md:grid-cols-3 gap-4">
+  <div class="card md:col-span-2">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold">Weight trend</h2>
+      <span class="pill">Start: {{ start.strftime('%Y-%m-%d') }}</span>
+    </div>
+    <canvas id="weightChart" height="120"></canvas>
+    {% if not labels %}
+      <p class="text-sm text-gray-500 mt-3">No entries yet. Add your first entry.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2 class="text-xl font-bold mb-3">Progress</h2>
+    <div class="text-sm text-gray-600 mb-2">Day {{ today_num }} (target: 7 days)</div>
+    <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+      <div class="h-full bg-black" style="width: {{ progress }}%"></div>
+    </div>
+    <div class="mt-3 text-sm">{{ progress }}% complete</div>
+  </div>
+</div>
+
+<div class="grid md:grid-cols-3 gap-4 mt-4">
+  <div class="card md:col-span-2">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-xl font-bold">Recent entries</h2>
+      <a href="{{ url_for('list_entries') }}" class="text-sm underline">View all</a>
+    </div>
+    <div class="divide-y">
+      {% for e in entries|reverse %}
+      <a href="{{ url_for('view_entry', entry_id=e.id) }}" class="py-3 flex items-start gap-3 hover:bg-gray-50 rounded-xl">
+        <div class="pill">Day {{ e.day_number or '-' }}</div>
+        <div class="flex-1">
+          <div class="font-semibold">{{ e.when.strftime('%Y-%m-%d') }}</div>
+          <div class="text-sm text-gray-600">{% if e.weight %}{{ e.weight }} kg • {% endif %}{% if e.mood %}{{ e.mood }} • {% endif %}{% if e.energy %}Energy {{ e.energy }}/5{% endif %}</div>
+        </div>
+        {% if e.photos and e.photos[0] %}
+          <img src="{{ url_for('uploaded_file', filename=e.photos[0].filename) }}" class="w-16 h-16 object-cover rounded-xl border" />
+        {% endif %}
+      </a>
+      {% else %}
+        <div class="text-sm text-gray-500">No entries yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2 class="text-xl font-bold mb-3">Quick actions</h2>
+    <div class="flex flex-col gap-2">
+      <a class="btn btn-primary justify-center" href="{{ url_for('entry_form') }}">Add today's entry</a>
+      <a class="btn btn-secondary justify-center" href="{{ url_for('list_entries') }}">Manage entries</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const labels  = {{ labels|tojson }};
+  const weights = {{ weights|tojson }};
+  const waters  = {{ waters|tojson }};
+  const energies = {{ energies|tojson }};
+
+  const ctx = document.getElementById('weightChart');
+  if (ctx && labels && labels.length) {
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Weight (kg)',
+            data: weights,
+            tension: 0.3,
+            spanGaps: true,
+            yAxisID: 'yWeight'
+          },
+          {
+            label: 'Water (ml)',
+            data: waters,
+            tension: 0.3,
+            spanGaps: true,
+            yAxisID: 'yWater'
+          },
+          // Optional: show energy on same chart
+          // {
+          //   label: 'Energy (1–5)',
+          //   data: energies,
+          //   tension: 0.3,
+          //   spanGaps: true,
+          //   yAxisID: 'yEnergy'
+          // }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true } },
+        scales: {
+          yWeight: { type: 'linear', position: 'left', title: { display: true, text: 'kg' } },
+          yWater:  { type: 'linear', position: 'right', title: { display: true, text: 'ml' }, beginAtZero: true, grid: { drawOnChartArea: false } },
+          // yEnergy: { type: 'linear', position: 'right', min: 0, max: 5, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+  }
+</script>
+
+<div class="mt-10 card">
+  <h2 class="text-xl font-bold mb-3">Stay Motivated 💪</h2>
+  <p class="text-gray-700 mb-4">
+    You’re on a powerful journey. Each day you complete brings you closer to unlocking the full benefits of your fast.
+  </p>
+  <ul class="list-disc list-inside space-y-1 text-gray-700">
+    <li>Improved mental clarity and focus</li>
+    <li>Increased fat burning and metabolic health</li>
+    <li>Enhanced autophagy (cellular repair)</li>
+    <li>Better blood sugar regulation</li>
+    <li>Boosted growth hormone production</li>
+    <li>A stronger sense of discipline and resilience</li>
+  </ul>
+  <p class="mt-4 text-emerald-600 font-semibold">
+    Remember: The discomfort is temporary, but the results can last a lifetime. You’ve got this!
+  </p>
+</div>
+
+{% endblock %}

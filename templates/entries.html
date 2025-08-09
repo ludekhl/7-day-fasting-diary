@@ -1,0 +1,38 @@
+{% extends '_base.html' %}
+{% block content %}
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold">Entries</h1>
+    {% if logged_in %}
+      <a class="btn btn-primary" href="{{ url_for('entry_form') }}">New entry</a>
+    {% else %}
+      <a class="btn btn-primary" href="{{ url_for('login', next=url_for('entry_form')) }}">Login to add</a>
+    {% endif %}
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    {% for e in entries %}
+      <a href="{{ url_for('view_entry', entry_id=e.id) }}" class="card hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold">{{ e.when.strftime('%Y-%m-%d') }}</div>
+            <div class="text-sm text-gray-600">
+              Day {{ e.day_number or '-' }}{% if e.weight %} • {{ e.weight }} kg{% endif %}
+            </div>
+          </div>
+          {% if e.photos and e.photos[0] %}
+            <img src="{{ url_for('uploaded_file', filename=e.photos[0].filename) }}" class="w-20 h-20 object-cover rounded-xl border" />
+          {% endif %}
+        </div>
+        {% if e.mood or e.energy or e.water_ml %}
+          <div class="text-sm text-gray-600 mt-2">
+            {% if e.mood %}<span class="pill">{{ e.mood }}</span>{% endif %}
+            {% if e.energy %}<span class="pill">Energy {{ e.energy }}/5</span>{% endif %}
+            {% if e.water_ml %}<span class="pill">Water {{ e.water_ml }} ml</span>{% endif %}
+          </div>
+        {% endif %}
+      </a>
+    {% else %}
+      <div class="text-sm text-gray-500">No entries yet.</div>
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -1,0 +1,75 @@
+:root {
+  --bg: #fefcfb;
+  --bg-gradient: linear-gradient(180deg, #fdf6f0 0%, #fefcfb 100%);
+  --ink: #1e293b;
+  --card: #ffffff;
+  --muted: #64748b;
+  --ring: #e2e8f0;
+  --primary: #06b6d4; /* teal */
+  --primary-hover: #0891b2;
+  --accent: #f59e0b; /* amber */
+}
+
+body {
+  background: var(--bg-gradient);
+  color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Glass effect for navbar */
+.glass {
+  backdrop-filter: saturate(180%) blur(12px);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* Card styling */
+.card {
+  background: var(--card);
+  border-radius: 1.2rem;
+  border: 1px solid var(--ring);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Buttons */
+.btn {
+  border-radius: 0.8rem;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  transition: all 0.15s ease-in-out;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+.btn-secondary {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* Pills (tags) */
+.pill {
+  background: var(--accent);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* Chart canvas wrapper */
+canvas {
+  background: white;
+  border-radius: 1rem;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
