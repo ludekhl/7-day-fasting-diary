@@ -1,0 +1,29 @@
+{% extends '_base.html' %}
+{% block content %}
+  <h1 class="text-2xl font-bold mb-4">{{ 'Edit article' if article else 'New article' }}</h1>
+
+  <form class="card space-y-4" method="post" enctype="multipart/form-data">
+    <div>
+      <label class="block text-sm font-semibold mb-1">Title</label>
+      <input name="title" value="{{ article.title if article else '' }}" class="w-full border rounded-xl px-3 py-2" required>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1">Cover image (optional)</label>
+      <input type="file" name="cover" accept="image/*" class="block w-full text-sm">
+      {% if article and article.cover_filename %}
+        <img src="{{ url_for('static', filename='uploads/' ~ article.cover_filename) }}" class="w-40 h-28 object-cover rounded-xl border mt-2">
+      {% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1">Body (Markdown / text)</label>
+      <textarea name="body" rows="14" class="w-full border rounded-xl px-3 py-2" placeholder="Psaní článku...">{{ article.body if article else '' }}</textarea>
+    </div>
+
+    <div class="flex gap-2">
+      <button class="btn btn-primary" type="submit">{{ 'Save' if article else 'Create' }}</button>
+      <a class="btn btn-secondary" href="{{ url_for('articles_list') }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

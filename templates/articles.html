@@ -1,0 +1,20 @@
+{% extends '_base.html' %}
+{% block content %}
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold">Articles</h1>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    {% for a in articles %}
+      <a href="{{ url_for('article_view', slug=a.slug) }}" class="card hover:shadow-md transition">
+        {% if a.cover_filename %}
+          <img src="{{ url_for('static', filename='uploads/' ~ a.cover_filename) }}" class="w-full h-44 object-cover rounded-xl mb-3 border">
+        {% endif %}
+        <div class="font-semibold">{{ a.title }}</div>
+        <div class="text-sm text-gray-500">{{ a.created_at.strftime('%Y-%m-%d') }}</div>
+      </a>
+    {% else %}
+      <div class="text-sm text-gray-500">Zatím žádné články.</div>
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>7-Day Fasting Diary</title>
+  <title>Life & Thoughts – My Journey, My Words</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
@@ -22,14 +22,15 @@
 <body class="bg-gray-50 text-gray-900">
   <header class="sticky top-0 z-10 glass border-b">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="{{ url_for('dashboard') }}" class="font-bold text-lg">7-Day Fasting Diary</a>
+      <a href="{{ url_for('home') }}" class="font-bold text-lg">Life & Thoughts – My Journey, My World</a>
         <nav class="flex items-center gap-2">
+          <a class="btn btn-secondary" href="{{ url_for('home') }}">Home</a>
+          <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">Diary</a>
+          <a class="btn btn-secondary" href="{{ url_for('articles_list') }}">Articles</a>
           {% if logged_in %}
-            <a class="btn btn-secondary" href="{{ url_for('entry_form') }}">New entry</a>
-            <a class="btn btn-secondary" href="{{ url_for('list_entries') }}">All entries</a>
+            <a class="btn btn-primary" href="{{ url_for('article_new') }}">New article</a>
             <a class="btn btn-secondary" href="{{ url_for('logout') }}">Logout</a>
           {% else %}
-            <a class="btn btn-secondary" href="{{ url_for('list_entries') }}">All entries</a>
             <a class="btn btn-primary" href="{{ url_for('login', next=request.path) }}">Login</a>
           {% endif %}
         </nav>
@@ -50,7 +51,7 @@
   </main>
 
   <footer class="py-10 text-center text-sm text-gray-500">
-    <span class="brand">Built for a focused 7-day reset. Stay hydrated. 🥤</span>
+    <span class="brand">Mind, body and everything in between 🥤</span>
   </footer>
 </body>
 </html>

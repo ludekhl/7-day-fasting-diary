@@ -1,0 +1,37 @@
+{% extends '_base.html' %}
+{% block content %}
+  <div class="grid md:grid-cols-3 gap-4">
+    <div class="md:col-span-2 card">
+      <h1 class="text-2xl font-bold mb-2">{{ about.name }}</h1>
+      <p class="text-gray-700">{{ about.tagline }}</p>
+
+      <div class="mt-6">
+        <h2 class="text-xl font-semibold mb-3">Latest articles</h2>
+        <div class="grid md:grid-cols-2 gap-3">
+          {% for a in articles %}
+            <a href="{{ url_for('article_view', slug=a.slug) }}" class="card hover:shadow-md transition">
+              {% if a.cover_filename %}
+                <img src="{{ url_for('static', filename='uploads/' ~ a.cover_filename) }}" class="w-full h-40 object-cover rounded-xl mb-3 border">
+              {% endif %}
+              <div class="font-semibold">{{ a.title }}</div>
+              <div class="text-sm text-gray-500">{{ a.created_at.strftime('%Y-%m-%d') }}</div>
+            </a>
+          {% else %}
+            <div class="text-sm text-gray-500">Žádné články zatím nejsou.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-3">Quick links</h2>
+      <div class="flex flex-col gap-2">
+        <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">Open Diary</a>
+        <a class="btn btn-secondary" href="{{ url_for('articles_list') }}">All Articles</a>
+        {% if logged_in %}
+          <a class="btn btn-primary" href="{{ url_for('article_new') }}">Write new article</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

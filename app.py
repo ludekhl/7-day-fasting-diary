@@ -2,17 +2,18 @@ from __future__ import annotations
 import os
 import socket
 import uuid
-from datetime import date, datetime
+import re
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from flask import (
-    Flask, request, redirect, url_for, flash, send_from_directory, render_template
+    Flask, request, redirect, url_for, flash, send_from_directory, render_template, session, g
 )
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import relationship
-from flask import session, g
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import relationship
 
 # -------------------- Paths & App --------------------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -71,6 +72,7 @@ class Photo(db.Model):
 
     entry = relationship("Entry", back_populates="photos")
 
+
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -87,26 +89,56 @@ class User(db.Model):
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
+
+class Article(db.Model):
+    __tablename__ = "articles"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(180), nullable=False)
+    slug = db.Column(db.String(200), unique=True, nullable=False, index=True)
+    body = db.Column(db.Text, nullable=False)  # markdown or plain text
+    cover_filename = db.Column(db.String(256), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+def slugify(s: str) -> str:
+    s = s.strip().lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s or "post"
+
+
+def unique_slug(base: str) -> str:
+    slug = slugify(base)
+    n = 1
+    while Article.query.filter_by(slug=slug).first():
+        n += 1
+        slug = f"{slugify(base)}-{n}"
+    return slug
+
+
 with app.app_context():
     db.create_all()
 
-@app.before_request
-def load_user():
-    uid = session.get("user_id")
-    g.user = User.query.get(uid) if uid else None
-
-@app.context_processor
-def inject_auth():
-    return {"logged_in": bool(g.user), "current_user": g.user}
-
+# -------------------- Auth helpers (single source) --------------------
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if not g.user:
+        if not getattr(g, "user", None):
             flash("Please log in to do that.", "error")
             return redirect(url_for("login", next=request.path))
         return f(*args, **kwargs)
     return wrapper
+
+
+@app.before_request
+def load_user():
+    uid = session.get("user_id")
+    g.user = db.session.get(User, uid) if uid else None
+
+
+@app.context_processor
+def inject_auth():
+    return {"logged_in": bool(g.user), "current_user": g.user}
 
 # -------------------- Helpers --------------------
 def allowed_file(filename: str) -> bool:
@@ -142,16 +174,23 @@ def fast_start_date() -> date:
 def compute_day_number(d: date) -> int:
     return (d - fast_start_date()).days + 1
 
-
 # -------------------- Routes --------------------
-from datetime import timedelta
-
+# Home (public)
 @app.route("/")
+def home():
+    about = {
+        "name": "Tvoje jméno",
+        "tagline": "Stručný odstavec o tobě – doplníš později.",
+    }
+    recent = Article.query.order_by(Article.created_at.desc()).limit(6).all()
+    return render_template("home.html", about=about, articles=recent)
+
+# Diary dashboard (public, read-only)
+@app.route("/diary")
 def dashboard():
     start = fast_start_date()
     window_end = start + timedelta(days=6)
 
-    # pull only entries in the 7-day window, oldest→newest
     entries = (
         Entry.query
         .filter(Entry.when.between(start, window_end))
@@ -160,7 +199,7 @@ def dashboard():
     )
 
     # bucket by day
-    by_day = {}
+    by_day: dict[date, dict] = {}
     for e in entries:
         d = e.when
         by_day.setdefault(d, {"entries": []})
@@ -177,10 +216,9 @@ def dashboard():
         if bucket:
             progress_days += 1
             # latest entry of the day for weight/energy; sum water
-            latest = bucket[-1]
             day_weight = next((e.weight for e in reversed(bucket) if e.weight is not None), None)
             day_energy = next((e.energy for e in reversed(bucket) if e.energy is not None), None)
-            day_water  = sum((e.water_ml or 0) for e in bucket)
+            day_water  = sum((e.water_ml or 0) for e in bucket) if any(e.water_ml for e in bucket) else None
         else:
             day_weight = None
             day_energy = None
@@ -204,6 +242,7 @@ def dashboard():
         progress=progress,
     )
 
+# Auth
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -218,12 +257,100 @@ def login():
         flash("Invalid credentials.", "error")
     return render_template("login.html")
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     flash("Logged out.", "success")
     return redirect(url_for("dashboard"))
 
+# Articles (public read, CRUD auth)
+@app.route("/articles")
+def articles_list():
+    arts = Article.query.order_by(Article.created_at.desc()).all()
+    return render_template("articles.html", articles=arts)
+
+
+@app.route("/article/new", methods=["GET", "POST"])
+@login_required
+def article_new():
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        body = (request.form.get("body") or "").strip()
+        if not title or not body:
+            flash("Název i obsah jsou povinné.", "error")
+            return redirect(url_for("article_new"))
+
+        slug = unique_slug(title)
+
+        # optional cover image
+        files = request.files.getlist("cover")
+        cover_name = None
+        if files:
+            f = files[0]
+            if f and f.filename:
+                ext = f.filename.rsplit(".", 1)[-1].lower()
+                if ext in ALLOWED_EXTENSIONS:
+                    fname = f"{uuid.uuid4().hex}.{ext}"
+                    f.save(os.path.join(UPLOAD_DIR, fname))
+                    cover_name = fname
+
+        art = Article(title=title, slug=slug, body=body, cover_filename=cover_name)
+        db.session.add(art)
+        db.session.commit()
+        flash("Článek vytvořen.", "success")
+        return redirect(url_for("article_view", slug=art.slug))
+
+    return render_template("article_form.html", article=None)
+
+
+@app.route("/article/<int:article_id>/edit", methods=["GET", "POST"])
+@login_required
+def article_edit(article_id: int):
+    art = Article.query.get_or_404(article_id)
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        body = (request.form.get("body") or "").strip()
+        if not title or not body:
+            flash("Název i obsah jsou povinné.", "error")
+            return redirect(url_for("article_edit", article_id=art.id))
+
+        art.title = title
+        art.body = body
+
+        files = request.files.getlist("cover")
+        if files and files[0] and files[0].filename:
+            f = files[0]
+            ext = f.filename.rsplit(".", 1)[-1].lower()
+            if ext in ALLOWED_EXTENSIONS:
+                fname = f"{uuid.uuid4().hex}.{ext}"
+                f.save(os.path.join(UPLOAD_DIR, fname))
+                art.cover_filename = fname
+
+        db.session.commit()
+        flash("Článek upraven.", "success")
+        return redirect(url_for("article_view", slug=art.slug))
+
+    return render_template("article_form.html", article=art)
+
+
+@app.route("/article/<int:article_id>/delete", methods=["POST"])
+@login_required
+def article_delete(article_id: int):
+    art = Article.query.get_or_404(article_id)
+    db.session.delete(art)
+    db.session.commit()
+    flash("Článek smazán.", "success")
+    return redirect(url_for("articles_list"))
+
+
+@app.route("/a/<slug>")
+def article_view(slug: str):
+    art = Article.query.filter_by(slug=slug).first_or_404()
+    share_url = url_for("article_view", slug=art.slug, _external=True)
+    return render_template("article_view.html", article=art, share_url=share_url)
+
+# Diary entries (list is public, mutations require login)
 @app.route("/entries")
 def list_entries():
     entries = Entry.query.order_by(Entry.when.desc()).all()
@@ -234,7 +361,7 @@ def list_entries():
 @app.route("/entry/<int:entry_id>/edit", methods=["GET", "POST"])
 @login_required
 def entry_form(entry_id: Optional[int] = None):
-    entry = Entry.query.get(entry_id) if entry_id else None
+    entry = db.session.get(Entry, entry_id) if entry_id else None
     if request.method == "POST":
         when_str = request.form.get("when") or date.today().isoformat()
         when_d = datetime.strptime(when_str, "%Y-%m-%d").date()
@@ -312,17 +439,15 @@ def delete_photo(photo_id: int):
     flash("Photo removed.", "success")
     return redirect(url_for("view_entry", entry_id=entry_id))
 
-
+# Optional: legacy uploads route (public). Templates should prefer url_for('static', filename='uploads/<name>')
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
 
 @app.errorhandler(413)
 def too_large(e):
     flash("File too large.", "error")
     return redirect(request.referrer or url_for("dashboard"))
-
 
 # -------------------- Run Helper --------------------
 def find_free_port(start: int = 5000, limit: int = 20) -> int:
@@ -335,7 +460,6 @@ def find_free_port(start: int = 5000, limit: int = 20) -> int:
             except OSError:
                 continue
     return start
-
 
 if __name__ == "__main__":
     port = find_free_port(5000)
